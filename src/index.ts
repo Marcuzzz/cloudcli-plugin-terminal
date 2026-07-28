@@ -1,5 +1,5 @@
 /**
- * web-terminal plugin — full xterm.js terminal with multi-tab support.
+ * cloud-terminal plugin — full xterm.js terminal with multi-tab support.
  *
  * Sessions persist across mount/unmount (tab switching). WebSocket connections
  * and PTY processes stay alive when the user navigates to other tabs.
@@ -113,8 +113,8 @@ const THEMES: Record<string, TerminalTheme> = {
 };
 
 // ── Persistent prefs ──────────────────────────────────────────────────────────
-const PREFS_KEY = 'web-terminal-prefs';
-const WEBGL_DISABLED_KEY = 'web-terminal-disable-webgl';
+const PREFS_KEY = 'cloud-terminal-prefs';
+const WEBGL_DISABLED_KEY = 'cloud-terminal-disable-webgl';
 const DEFAULT_FONT_FAMILY = '"Cascadia Mono", Consolas, "DejaVu Sans Mono", "Liberation Mono", "Noto Sans Mono", "Noto Sans Mono CJK JP", "Noto Sans CJK JP", "Microsoft YaHei", "MS Gothic", Meiryo, "PingFang SC", "Hiragino Sans GB", "Noto Color Emoji", Menlo, Monaco, "Courier New", monospace';
 function isWebglDisabled(): boolean { try { return localStorage.getItem(WEBGL_DISABLED_KEY) === 'true'; } catch { return false; } }
 function loadPrefs(): Partial<Prefs> { try { return JSON.parse(localStorage.getItem(PREFS_KEY) || '{}'); } catch { return {}; } }
@@ -122,13 +122,13 @@ function savePrefs(p: Prefs): void { try { localStorage.setItem(PREFS_KEY, JSON.
 
 // ── Global state — stored on window to survive Blob URL re-imports ────────────
 declare global {
-  interface Window { __wtState?: GlobalState; }
+  interface Window { __ctState?: GlobalState; }
 }
 
-if (!window.__wtState) {
-  window.__wtState = { modules: null, sessions: new Map(), prefs: null, tabCounter: 0, activeId: null };
+if (!window.__ctState) {
+  window.__ctState = { modules: null, sessions: new Map(), prefs: null, tabCounter: 0, activeId: null };
 }
-const _G: GlobalState = window.__wtState;
+const _G: GlobalState = window.__ctState;
 
 // ── Safe DOM helpers ──────────────────────────────────────────────────────────
 function el(tag: string, cls?: string | null, text?: string): HTMLElement {
@@ -139,7 +139,7 @@ function el(tag: string, cls?: string | null, text?: string): HTMLElement {
 }
 
 function svgBtn(svgMarkup: string, title?: string): HTMLButtonElement {
-  const b = el('button', 'wt-btn') as HTMLButtonElement;
+  const b = el('button', 'ct-btn') as HTMLButtonElement;
   b.title = title || '';
   const span = el('span');
   span.innerHTML = svgMarkup; // eslint-disable-line -- trusted constant
@@ -147,11 +147,11 @@ function svgBtn(svgMarkup: string, title?: string): HTMLButtonElement {
   return b;
 }
 
-function divider(): HTMLElement { return el('div', 'wt-divider'); }
+function divider(): HTMLElement { return el('div', 'ct-divider'); }
 
 // ── CSS ───────────────────────────────────────────────────────────────────────
 function injectStyles(): void {
-  if (document.getElementById('wt-css')) return;
+  if (document.getElementById('ct-css')) return;
 
   const link = document.createElement('link');
   link.rel = 'stylesheet';
@@ -159,9 +159,9 @@ function injectStyles(): void {
   document.head.appendChild(link);
 
   const s = document.createElement('style');
-  s.id = 'wt-css';
+  s.id = 'ct-css';
   s.textContent = `
-    .wt-root {
+    .ct-root {
       display:flex; flex-direction:column; height:100%;
       background:#1e1e1e; color:#d4d4d4;
       font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;
@@ -171,101 +171,101 @@ function injectStyles(): void {
       --tab-active:rgba(255,255,255,0.1); --btn:rgba(255,255,255,0.08);
       --btn-hover:rgba(255,255,255,0.15);
     }
-    .wt-root.wt-light {
+    .ct-root.ct-light {
       background:#f5f5f5; color:#383a42;
       --accent:#0184bc; --border:rgba(0,0,0,0.12);
       --toolbar-bg:rgba(0,0,0,0.06); --tab-bg:rgba(0,0,0,0.04);
       --tab-active:rgba(0,0,0,0.1); --btn:rgba(0,0,0,0.06);
       --btn-hover:rgba(0,0,0,0.12);
     }
-    .wt-toolbar {
+    .ct-toolbar {
       display:flex; align-items:center; gap:2px;
       padding:4px 6px; background:var(--toolbar-bg);
       border-bottom:1px solid var(--border); flex-shrink:0; min-height:36px;
     }
-    .wt-tabs { display:flex; align-items:center; flex:1; overflow-x:auto; gap:2px; scrollbar-width:none; }
-    .wt-tabs::-webkit-scrollbar { display:none; }
-    .wt-tab {
+    .ct-tabs { display:flex; align-items:center; flex:1; overflow-x:auto; gap:2px; scrollbar-width:none; }
+    .ct-tabs::-webkit-scrollbar { display:none; }
+    .ct-tab {
       display:flex; align-items:center; gap:5px; padding:4px 8px 4px 10px;
       border-radius:5px; cursor:pointer; white-space:nowrap;
       background:var(--tab-bg); font-size:12px; font-weight:500;
       opacity:.7; transition:background .15s,opacity .15s;
       user-select:none; border:1px solid transparent; flex-shrink:0;
     }
-    .wt-tab:hover { opacity:.9; background:var(--tab-active); }
-    .wt-tab.active { background:var(--tab-active); border-color:var(--accent); opacity:1; }
-    .wt-tab-dot { width:6px; height:6px; border-radius:50%; background:var(--accent); flex-shrink:0; }
-    .wt-tab-dot.off { background:#666; }
-    .wt-tab-close {
+    .ct-tab:hover { opacity:.9; background:var(--tab-active); }
+    .ct-tab.active { background:var(--tab-active); border-color:var(--accent); opacity:1; }
+    .ct-tab-dot { width:6px; height:6px; border-radius:50%; background:var(--accent); flex-shrink:0; }
+    .ct-tab-dot.off { background:#666; }
+    .ct-tab-close {
       display:flex; align-items:center; justify-content:center;
       width:16px; height:16px; border-radius:3px; border:none; background:none;
       color:inherit; cursor:pointer; opacity:.4; font-size:13px; padding:0;
     }
-    .wt-tab-close:hover { opacity:1; background:rgba(255,70,70,.3); }
-    .wt-btn {
+    .ct-tab-close:hover { opacity:1; background:rgba(255,70,70,.3); }
+    .ct-btn {
       display:flex; align-items:center; justify-content:center;
       height:28px; min-width:28px; padding:0 6px; border-radius:5px;
       border:none; background:var(--btn); color:inherit; font-size:12px;
       cursor:pointer; flex-shrink:0; transition:background .15s;
     }
-    .wt-btn:hover { background:var(--btn-hover); }
-    .wt-btn span { display:flex; align-items:center; }
-    .wt-btn svg { width:14px; height:14px; }
-    .wt-divider { width:1px; height:18px; background:var(--border); margin:0 3px; flex-shrink:0; }
-    .wt-panes { flex:1; position:relative; overflow:hidden; }
-    .wt-pane { position:absolute; inset:0; display:flex; flex-direction:column; overflow:hidden; padding:4px; }
-    .wt-pane.hidden { display:none; }
-    .wt-pane .xterm { height:100%; }
-    .wt-pane .xterm-viewport { overflow-y:auto !important; }
+    .ct-btn:hover { background:var(--btn-hover); }
+    .ct-btn span { display:flex; align-items:center; }
+    .ct-btn svg { width:14px; height:14px; }
+    .ct-divider { width:1px; height:18px; background:var(--border); margin:0 3px; flex-shrink:0; }
+    .ct-panes { flex:1; position:relative; overflow:hidden; }
+    .ct-pane { position:absolute; inset:0; display:flex; flex-direction:column; overflow:hidden; padding:4px; }
+    .ct-pane.hidden { display:none; }
+    .ct-pane .xterm { height:100%; }
+    .ct-pane .xterm-viewport { overflow-y:auto !important; }
     .xterm .xterm-screen { outline:none !important; }
-    .wt-pane .xterm,
-    .wt-pane .xterm * {
+    .ct-pane .xterm,
+    .ct-pane .xterm * {
       letter-spacing:0 !important;
       word-spacing:0 !important;
       text-transform:none !important;
       font-variant-ligatures:none !important;
       font-feature-settings:normal !important;
     }
-    .wt-overlay {
+    .ct-overlay {
       position:absolute; inset:0; display:flex; flex-direction:column;
       align-items:center; justify-content:center; gap:10px;
       background:rgba(0,0,0,.6); backdrop-filter:blur(4px);
       z-index:10; text-align:center; padding:24px;
     }
-    .wt-overlay-title { font-size:14px; font-weight:600; }
-    .wt-overlay-sub { font-size:12px; opacity:.6; }
-    .wt-overlay-btn {
+    .ct-overlay-title { font-size:14px; font-weight:600; }
+    .ct-overlay-sub { font-size:12px; opacity:.6; }
+    .ct-overlay-btn {
       margin-top:6px; padding:7px 18px; border-radius:6px; border:none;
       background:var(--accent); color:#fff; font-size:13px; cursor:pointer; font-weight:500;
     }
-    .wt-overlay-btn:hover { filter:brightness(1.15); }
-    .wt-settings-wrap { position:relative; }
-    .wt-popover {
+    .ct-overlay-btn:hover { filter:brightness(1.15); }
+    .ct-settings-wrap { position:relative; }
+    .ct-popover {
       position:absolute; top:calc(100% + 6px); right:0; z-index:50;
       background:#2d2d2d; border:1px solid rgba(255,255,255,.12);
       border-radius:8px; padding:12px 14px; min-width:180px;
       box-shadow:0 8px 24px rgba(0,0,0,.4);
       display:none; flex-direction:column; gap:10px;
     }
-    .wt-root.wt-light .wt-popover { background:#fff; border-color:rgba(0,0,0,.12); box-shadow:0 8px 24px rgba(0,0,0,.12); }
-    .wt-popover.open { display:flex; }
-    .wt-popover label { font-size:11px; font-weight:600; text-transform:uppercase; letter-spacing:.5px; opacity:.5; }
-    .wt-popover select {
+    .ct-root.ct-light .ct-popover { background:#fff; border-color:rgba(0,0,0,.12); box-shadow:0 8px 24px rgba(0,0,0,.12); }
+    .ct-popover.open { display:flex; }
+    .ct-popover label { font-size:11px; font-weight:600; text-transform:uppercase; letter-spacing:.5px; opacity:.5; }
+    .ct-popover select {
       width:100%; height:28px; padding:0 6px; border-radius:5px;
       border:1px solid var(--border); background:var(--btn); color:inherit;
       font-size:12px; cursor:pointer; outline:none;
     }
-    .wt-popover select:focus { border-color:var(--accent); }
-    .wt-fs-row { display:flex; align-items:center; gap:8px; }
-    .wt-fs-row span { flex:1; text-align:center; font-size:13px; font-weight:500; }
-    .wt-keybar {
+    .ct-popover select:focus { border-color:var(--accent); }
+    .ct-fs-row { display:flex; align-items:center; gap:8px; }
+    .ct-fs-row span { flex:1; text-align:center; font-size:13px; font-weight:500; }
+    .ct-keybar {
       display:none; flex-shrink:0; overflow-x:auto; flex-wrap:nowrap;
       gap:4px; padding:5px 6px; background:var(--toolbar-bg);
       border-top:1px solid var(--border); scrollbar-width:none;
       -webkit-overflow-scrolling:touch;
     }
-    .wt-keybar::-webkit-scrollbar { display:none; }
-    .wt-key {
+    .ct-keybar::-webkit-scrollbar { display:none; }
+    .ct-key {
       flex-shrink:0; height:34px; min-width:38px; padding:0 10px;
       border-radius:6px; border:1px solid var(--border);
       background:var(--btn); color:inherit; font-size:12px;
@@ -273,24 +273,24 @@ function injectStyles(): void {
       display:flex; align-items:center; justify-content:center;
       user-select:none; -webkit-tap-highlight-color:transparent;
     }
-    .wt-key:active { background:var(--accent); color:#fff; border-color:var(--accent); }
-    .wt-key.active { background:var(--accent); color:#fff; border-color:var(--accent); }
-    .wt-key svg { width:16px; height:16px; }
+    .ct-key:active { background:var(--accent); color:#fff; border-color:var(--accent); }
+    .ct-key.active { background:var(--accent); color:#fff; border-color:var(--accent); }
+    .ct-key svg { width:16px; height:16px; }
     @media (max-width:768px), (hover:none) and (pointer:coarse) {
-      .wt-keybar { display:flex; }
-      .wt-toolbar { min-height:34px; padding:3px 4px; }
-      .wt-btn { height:26px; min-width:26px; }
-      .wt-tab { font-size:11px; padding:3px 6px 3px 8px; }
+      .ct-keybar { display:flex; }
+      .ct-toolbar { min-height:34px; padding:3px 4px; }
+      .ct-btn { height:26px; min-width:26px; }
+      .ct-tab { font-size:11px; padding:3px 6px 3px 8px; }
     }
-    @keyframes wt-spin { 0%{transform:rotate(0deg)} 100%{transform:rotate(360deg)} }
-    .wt-spinner { width:24px; height:24px; border:2px solid var(--border); border-top-color:var(--accent); border-radius:50%; animation:wt-spin .8s linear infinite; }
-    .wt-new-tab {
+    @keyframes ct-spin { 0%{transform:rotate(0deg)} 100%{transform:rotate(360deg)} }
+    .ct-spinner { width:24px; height:24px; border:2px solid var(--border); border-top-color:var(--accent); border-radius:50%; animation:ct-spin .8s linear infinite; }
+    .ct-new-tab {
       display:flex; align-items:center; justify-content:center;
       width:26px; height:26px; border-radius:5px; border:none;
       background:none; color:inherit; font-size:17px; cursor:pointer;
       opacity:.5; flex-shrink:0;
     }
-    .wt-new-tab:hover { opacity:1; background:var(--btn-hover); }
+    .ct-new-tab:hover { opacity:1; background:var(--btn-hover); }
   `;
   document.head.appendChild(s);
 }
@@ -356,8 +356,8 @@ class TerminalSession {
     this._reconnectAttempts = 0;
     this._pingInterval = null;
 
-    this.el = el('div', 'wt-pane hidden');
-    this.overlayEl = el('div', 'wt-overlay');
+    this.el = el('div', 'ct-pane hidden');
+    this.overlayEl = el('div', 'ct-overlay');
     this.el.appendChild(this.overlayEl);
     this._showOverlay('connecting', 'Connecting...', 'Starting shell session');
 
@@ -526,11 +526,11 @@ class TerminalSession {
   private _showOverlay(type: string, title: string, sub?: string): void {
     while (this.overlayEl.firstChild) this.overlayEl.removeChild(this.overlayEl.firstChild);
     this.overlayEl.style.display = 'flex';
-    if (type === 'connecting') this.overlayEl.appendChild(el('div', 'wt-spinner'));
-    this.overlayEl.appendChild(el('div', 'wt-overlay-title', title));
-    if (sub) this.overlayEl.appendChild(el('div', 'wt-overlay-sub', sub));
+    if (type === 'connecting') this.overlayEl.appendChild(el('div', 'ct-spinner'));
+    this.overlayEl.appendChild(el('div', 'ct-overlay-title', title));
+    if (sub) this.overlayEl.appendChild(el('div', 'ct-overlay-sub', sub));
     if (type !== 'connecting') {
-      const btn = el('button', 'wt-overlay-btn', 'Reconnect');
+      const btn = el('button', 'ct-overlay-btn', 'Reconnect');
       btn.addEventListener('click', () => { this._reconnectAttempts = 0; this._connect(); });
       this.overlayEl.appendChild(btn);
     }
@@ -645,22 +645,22 @@ export async function mount(container: HTMLElement, api: PluginAPI): Promise<voi
   const prefs = _G.prefs;
   const isLight = (): boolean => prefs.theme === 'Light';
 
-  const root = el('div', 'wt-root' + (isLight() ? ' wt-light' : ''));
+  const root = el('div', 'ct-root' + (isLight() ? ' ct-light' : ''));
   container.appendChild(root);
 
-  const toolbar = el('div', 'wt-toolbar');
+  const toolbar = el('div', 'ct-toolbar');
   root.appendChild(toolbar);
-  const tabBar = el('div', 'wt-tabs');
+  const tabBar = el('div', 'ct-tabs');
   toolbar.appendChild(tabBar);
-  const newBtn = el('button', 'wt-new-tab', '+');
+  const newBtn = el('button', 'ct-new-tab', '+');
   newBtn.title = 'New tab';
   toolbar.appendChild(newBtn);
   toolbar.appendChild(divider());
 
-  const settingsWrap = el('div', 'wt-settings-wrap');
+  const settingsWrap = el('div', 'ct-settings-wrap');
   const gearBtn = svgBtn(IC.gear, 'Settings');
   settingsWrap.appendChild(gearBtn);
-  const popover = el('div', 'wt-popover');
+  const popover = el('div', 'ct-popover');
 
   popover.appendChild(el('label', null, 'Theme'));
   const themeSel = document.createElement('select');
@@ -673,7 +673,7 @@ export async function mount(container: HTMLElement, api: PluginAPI): Promise<voi
   popover.appendChild(themeSel);
 
   popover.appendChild(el('label', null, 'Font Size'));
-  const fsRow = el('div', 'wt-fs-row');
+  const fsRow = el('div', 'ct-fs-row');
   const fsMinus = svgBtn(IC.minus, 'Decrease');
   const fsVal = el('span', null, prefs.fontSize + 'px');
   const fsPlus = svgBtn(IC.plus, 'Increase');
@@ -682,10 +682,10 @@ export async function mount(container: HTMLElement, api: PluginAPI): Promise<voi
   settingsWrap.appendChild(popover);
   toolbar.appendChild(settingsWrap);
 
-  const panesEl = el('div', 'wt-panes');
+  const panesEl = el('div', 'ct-panes');
   root.appendChild(panesEl);
 
-  const keybar = el('div', 'wt-keybar');
+  const keybar = el('div', 'ct-keybar');
   root.appendChild(keybar);
 
   const MOBILE_KEYS: MobileKey[] = [
@@ -702,7 +702,7 @@ export async function mount(container: HTMLElement, api: PluginAPI): Promise<voi
   let ctrlKeyEl: HTMLElement | null = null, altKeyEl: HTMLElement | null = null;
 
   MOBILE_KEYS.forEach(k => {
-    const btn = el('button', 'wt-key');
+    const btn = el('button', 'ct-key');
     if (k.svg) {
       const span = el('span');
       span.innerHTML = k.label; // eslint-disable-line -- trusted SVG constant
@@ -758,10 +758,10 @@ export async function mount(container: HTMLElement, api: PluginAPI): Promise<voi
   function renderTabs(): void {
     while (tabBar.firstChild) tabBar.removeChild(tabBar.firstChild);
     for (const [id, sess] of _G.sessions) {
-      const tab = el('div', 'wt-tab' + (id === _G.activeId ? ' active' : ''));
-      const dot = el('div', 'wt-tab-dot' + (sess.status !== 'connected' ? ' off' : ''));
+      const tab = el('div', 'ct-tab' + (id === _G.activeId ? ' active' : ''));
+      const dot = el('div', 'ct-tab-dot' + (sess.status !== 'connected' ? ' off' : ''));
       const lbl = el('span', null, sess.label);
-      const closeEl = el('button', 'wt-tab-close');
+      const closeEl = el('button', 'ct-tab-close');
       closeEl.textContent = '\u00d7'; closeEl.title = 'Close';
       closeEl.addEventListener('click', (e) => { e.stopPropagation(); closeTab(id); });
       tab.appendChild(dot); tab.appendChild(lbl); tab.appendChild(closeEl);
@@ -829,7 +829,7 @@ export async function mount(container: HTMLElement, api: PluginAPI): Promise<voi
 
   themeSel.addEventListener('change', () => {
     prefs.theme = themeSel.value; savePrefs(prefs);
-    root.classList.toggle('wt-light', isLight());
+    root.classList.toggle('ct-light', isLight());
     for (const s of _G.sessions.values()) s.updateTheme(prefs.theme);
   });
   fsMinus.addEventListener('click', () => {
@@ -851,7 +851,7 @@ export async function mount(container: HTMLElement, api: PluginAPI): Promise<voi
   document.addEventListener('keydown', onKey);
   const unsubCtx = api.onContextChange ? api.onContextChange(() => {}) : null;
 
-  (container as any)._wtCleanup = () => {
+  (container as any)._ctCleanup = () => {
     document.removeEventListener('keydown', onKey);
     document.removeEventListener('click', closePopover);
     if (unsubCtx) unsubCtx();
@@ -861,8 +861,8 @@ export async function mount(container: HTMLElement, api: PluginAPI): Promise<voi
 }
 
 export function unmount(container: HTMLElement): void {
-  if ((container as any)._wtCleanup) {
-    (container as any)._wtCleanup();
-    delete (container as any)._wtCleanup;
+  if ((container as any)._ctCleanup) {
+    (container as any)._ctCleanup();
+    delete (container as any)._ctCleanup;
   }
 }

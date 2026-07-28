@@ -19,7 +19,7 @@ box drawing, emoji, or CJK text as black squares, disable WebGL for that browser
 profile and reopen the terminal:
 
 ```js
-localStorage.setItem('web-terminal-disable-webgl', 'true')
+localStorage.setItem('cloud-terminal-disable-webgl', 'true')
 ```
 
 ## Installation
@@ -30,8 +30,8 @@ Open **Settings > Plugins**, paste this repository URL, and click **Install**. C
 **Manual:**
 ```bash
 git clone --depth 1 https://github.com/cloudcli-ai/cloudcli-plugin-terminal.git \
-  ~/.claude-code-ui/plugins/web-terminal
-cd ~/.claude-code-ui/plugins/web-terminal
+  ~/.claude-code-ui/plugins/cloud-terminal
+cd ~/.claude-code-ui/plugins/cloud-terminal
 npm install
 npm run build
 ```

@@ -71,7 +71,7 @@ function findModule(name: string): any {
     dir = parent;
   }
 
-  throw new Error(`[web-terminal] Cannot find module '${name}' - run npm install in ${__dirname}`);
+  throw new Error(`[cloud-terminal] Cannot find module '${name}' - run npm install in ${__dirname}`);
 }
 
 // ── Dependencies ──────────────────────────────────────────────────────────────
@@ -137,7 +137,7 @@ function safeSend(ws: any, obj: unknown): void {
 const server = http.createServer((req, res) => {
   res.setHeader('Content-Type', 'application/json');
   if (req.method === 'GET' && (req.url === '/info' || req.url === '/')) {
-    res.end(JSON.stringify({ name: 'web-terminal', sessions: sessions.size, platform: process.platform, shell: getShell() }));
+    res.end(JSON.stringify({ name: 'cloud-terminal', sessions: sessions.size, platform: process.platform, shell: getShell() }));
     return;
   }
   if (req.method === 'GET' && req.url === '/health') {
@@ -169,7 +169,7 @@ wss.on('connection', (ws: any) => {
         ...prioritizeUserNpmGlobalBin(process.env),
         TERM: 'xterm-256color',
         COLORTERM: 'truecolor',
-        TERM_PROGRAM: 'web-terminal',
+        TERM_PROGRAM: 'cloud-terminal',
       },
       encoding: null,
 
@@ -222,7 +222,7 @@ wss.on('connection', (ws: any) => {
   });
 
   ws.on('close', () => { sessions.delete(sessionId); try { ptyProc.kill(); } catch { /* ignore */ } });
-  ws.on('error', (err: Error) => { console.error(`[web-terminal] ${sessionId} error:`, err.message); });
+  ws.on('error', (err: Error) => { console.error(`[cloud-terminal] ${sessionId} error:`, err.message); });
 });
 
 // ── Start ─────────────────────────────────────────────────────────────────────
