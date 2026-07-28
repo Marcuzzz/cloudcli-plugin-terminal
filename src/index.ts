@@ -312,7 +312,7 @@ function buildWsUrl(): string {
   const proto = location.protocol === 'https:' ? 'wss:' : 'ws:';
   const token = localStorage.getItem('auth-token') || '';
   const qs = token ? '?token=' + encodeURIComponent(token) : '';
-  return proto + '//' + location.host + '/plugin-ws/web-terminal' + qs;
+  return proto + '//' + location.host + '/ws' + qs;
 }
 
 // ── Terminal session ──────────────────────────────────────────────────────────
