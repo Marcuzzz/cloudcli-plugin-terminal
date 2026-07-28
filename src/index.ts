@@ -114,9 +114,9 @@ const THEMES: Record<string, TerminalTheme> = {
 
 // ── Persistent prefs ──────────────────────────────────────────────────────────
 const PREFS_KEY = 'cloud-terminal-prefs';
-const WEBGL_DISABLED_KEY = 'cloud-terminal-disable-webgl';
+const WEBGL_ENABLED_KEY = 'cloud-terminal-enable-webgl';
 const DEFAULT_FONT_FAMILY = '"Cascadia Mono", Consolas, "DejaVu Sans Mono", "Liberation Mono", "Noto Sans Mono", "Noto Sans Mono CJK JP", "Noto Sans CJK JP", "Microsoft YaHei", "MS Gothic", Meiryo, "PingFang SC", "Hiragino Sans GB", "Noto Color Emoji", Menlo, Monaco, "Courier New", monospace';
-function isWebglDisabled(): boolean { try { return localStorage.getItem(WEBGL_DISABLED_KEY) === 'true'; } catch { return false; } }
+function isWebglEnabled(): boolean { try { return localStorage.getItem(WEBGL_ENABLED_KEY) === 'true'; } catch { return false; } }
 function loadPrefs(): Partial<Prefs> { try { return JSON.parse(localStorage.getItem(PREFS_KEY) || '{}'); } catch { return {}; } }
 function savePrefs(p: Prefs): void { try { localStorage.setItem(PREFS_KEY, JSON.stringify(p)); } catch { /* ignore */ } }
 
@@ -379,7 +379,7 @@ class TerminalSession {
 
     this.terminal.open(this.el);
 
-    if (!isWebglDisabled()) {
+    if (isWebglEnabled()) {
       try {
         const webgl = new opts.WebglAddon();
         webgl.onContextLoss(() => { try { webgl.dispose(); } catch { /* ignore */ } });

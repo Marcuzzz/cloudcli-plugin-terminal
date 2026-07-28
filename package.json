@@ -1,11 +1,11 @@
 {
   "name": "cloud-terminal",
-  "version": "1.0.6",
+  "version": "1.0.7",
   "private": true,
   "type": "module",
   "description": "Full-featured web terminal plugin for CloudCLI UI",
   "scripts": {
-    "build": "npx tsc --noEmit && npx esbuild src/index.ts --bundle --format=esm --outfile=dist/index.js --sourcemap && npx esbuild src/server.ts --bundle --format=esm --platform=node --outfile=dist/server.js --sourcemap --external:node-pty --external:ws",
+    "build": "node scripts/ensure-node-pty.js && npx tsc --noEmit && npx esbuild src/index.ts --bundle --format=esm --outfile=dist/index.js --sourcemap && npx esbuild src/server.ts --bundle --format=esm --platform=node --outfile=dist/server.js --sourcemap --external:node-pty --external:ws",
     "dev": "tsc --watch",
     "postinstall": "node scripts/ensure-node-pty.js"
   },

@@ -8,19 +8,21 @@ A full-featured terminal plugin for [CloudCLI UI](https://github.com/cloudcli-ai
 - **Persistent sessions** — PTY processes and WebSocket connections stay alive when you switch tabs
 - **Themes** — VS Dark, One Dark, Dracula, Solarized Dark, and Light
 - **Adjustable font size** — increase / decrease from the toolbar
-- **WebGL rendering** — GPU-accelerated rendering with automatic canvas fallback
+- **Canvas rendering by default** — with optional WebGL for GPU acceleration
 - **Unicode 11** — full emoji and wide-character support
 - **Auto-resize** — terminal reflows when the panel is resized
 
-## Rendering Fallback
+## Renderer
 
-The terminal uses WebGL by default. If a browser/driver combination renders
-box drawing, emoji, or CJK text as black squares, disable WebGL for that browser
-profile and reopen the terminal:
+The terminal uses xterm's canvas renderer by default because WebGL can miscalculate
+glyph widths on some browser/driver combinations, causing visible gaps between
+characters. To opt in to GPU-accelerated rendering, set:
 
 ```js
-localStorage.setItem('cloud-terminal-disable-webgl', 'true')
+localStorage.setItem('cloud-terminal-enable-webgl', 'true')
 ```
+
+Reload the terminal after changing this.
 
 ## Installation
 
