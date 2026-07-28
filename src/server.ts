@@ -152,7 +152,7 @@ const server = http.createServer((req, res) => {
 
 // ── WebSocket server ──────────────────────────────────────────────────────────
 
-const wss = new WebSocketServer({ server, path: '/plugin-ws/cloud-terminal' });
+const wss = new WebSocketServer({ server, path: '/ws' });
 
 wss.on('connection', (ws: any) => {
   const sessionId = `s${++sessionCounter}`;
