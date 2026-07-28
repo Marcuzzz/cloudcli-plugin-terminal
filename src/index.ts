@@ -445,9 +445,9 @@ class TerminalSession {
       if (d instanceof ArrayBuffer) {
         d = new TextDecoder().decode(d);
       }
-      if (typeof d === 'string' && d.charCodeAt(0) === 123) {
+      if (typeof d === 'string' && d.charCodeAt(0) === 1) {
         try {
-          const m = JSON.parse(d);
+          const m = JSON.parse(d.slice(1));
           if (m.type === 'ready') {
             this._setStatus('connected');
             this.overlayEl.style.display = 'none';
@@ -498,14 +498,14 @@ class TerminalSession {
     if (this._pingInterval) clearInterval(this._pingInterval);
     this._pingInterval = setInterval(() => {
       if (this.ws && this.ws.readyState === WebSocket.OPEN) {
-        this.ws.send(JSON.stringify({ type: 'ping' }));
+        this.ws.send('\x01' + JSON.stringify({ type: 'ping' }));
       }
     }, 25000);
   }
 
   private _send(data: string): void {
     if (this.ws && this.ws.readyState === WebSocket.OPEN) {
-      this.ws.send(JSON.stringify({ type: 'input', data }));
+      this.ws.send('\x01' + JSON.stringify({ type: 'input', data }));
     }
   }
 
@@ -516,7 +516,7 @@ class TerminalSession {
     try {
       this.fitAddon.fit();
       if (this.ws && this.ws.readyState === WebSocket.OPEN) {
-        this.ws.send(JSON.stringify({ type: 'resize', cols: this.terminal.cols, rows: this.terminal.rows }));
+        this.ws.send('\x01' + JSON.stringify({ type: 'resize', cols: this.terminal.cols, rows: this.terminal.rows }));
       }
     } catch { /* ignore */ }
   }

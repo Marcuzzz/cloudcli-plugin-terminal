@@ -126,9 +126,11 @@ function prioritizeUserNpmGlobalBin(env: NodeJS.ProcessEnv): NodeJS.ProcessEnv {
   };
 }
 
+const CTRL = '\x01';
+
 function safeSend(ws: any, obj: unknown): void {
   if (ws && ws.readyState === WebSocket.OPEN) {
-    ws.send(typeof obj === 'string' ? obj : JSON.stringify(obj));
+    ws.send(CTRL + (typeof obj === 'string' ? obj : JSON.stringify(obj)));
   }
 }
 
@@ -210,9 +212,9 @@ wss.on('connection', (ws: any) => {
 
   ws.on('message', (rawData: Buffer | string) => {
     const text = Buffer.isBuffer(rawData) ? rawData.toString('utf8') : String(rawData);
-    if (text.charCodeAt(0) === 123) {
+    if (text.charCodeAt(0) === 1) {
       try {
-        const msg: WsMessage = JSON.parse(text);
+        const msg: WsMessage = JSON.parse(text.slice(1));
         if (msg.type === 'input' && typeof msg.data === 'string') { ptyProc.write(msg.data); return; }
         if (msg.type === 'resize') { ptyProc.resize(Math.max(1, Math.min(Number(msg.cols) || 80, 500)), Math.max(1, Math.min(Number(msg.rows) || 24, 200))); return; }
         if (msg.type === 'ping') { safeSend(ws, { type: 'pong', sessionId }); return; }
